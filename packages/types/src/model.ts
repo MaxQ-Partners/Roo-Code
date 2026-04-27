@@ -84,6 +84,11 @@ export const modelInfoSchema = z.object({
 	supportsReasoningBudget: z.boolean().optional(),
 	// Capability flag to indicate whether the model supports simple on/off binary reasoning
 	supportsReasoningBinary: z.boolean().optional(),
+	// Capability flag for models that use adaptive thinking (e.g. claude-opus-4-7+).
+	// When true, getAnthropicReasoning emits { type: "adaptive", display: "summarized" }
+	// instead of { type: "enabled", budget_tokens: N }. Must always travel with
+	// supportsTemperature: false — models with adaptive thinking reject explicit temperature.
+	supportsAdaptiveThinking: z.boolean().optional(),
 	// Capability flag to indicate whether the model supports temperature parameter
 	supportsTemperature: z.boolean().optional(),
 	defaultTemperature: z.number().optional(),

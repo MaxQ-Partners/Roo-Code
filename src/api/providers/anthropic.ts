@@ -55,6 +55,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		const cacheControl: CacheControlEphemeral = { type: "ephemeral" }
 		let {
 			id: modelId,
+			info,
 			betas = ["fine-grained-tool-streaming-2025-05-14"],
 			maxTokens,
 			temperature,
@@ -64,12 +65,13 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 		// Filter out non-Anthropic blocks (reasoning, thoughtSignature, etc.) before sending to the API
 		const sanitizedMessages = filterNonAnthropicBlocks(messages)
 
-		// Add 1M context beta flag if enabled for supported models (Claude Sonnet 4/4.5/4.6, Opus 4.6)
+		// Add 1M context beta flag if enabled for supported models (Claude Sonnet 4/4.5/4.6, Opus 4.6/4.7)
 		if (
 			(modelId === "claude-sonnet-4-20250514" ||
 				modelId === "claude-sonnet-4-5" ||
 				modelId === "claude-sonnet-4-6" ||
-				modelId === "claude-opus-4-6") &&
+				modelId === "claude-opus-4-6" ||
+				modelId === "claude-opus-4-7") &&
 			this.options.anthropicBeta1MContext
 		) {
 			betas.push("context-1m-2025-08-07")
@@ -85,6 +87,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			case "claude-sonnet-4-5":
 			case "claude-sonnet-4-20250514":
 			case "claude-opus-4-6":
+			case "claude-opus-4-7":
 			case "claude-opus-4-5-20251101":
 			case "claude-opus-4-1-20250805":
 			case "claude-opus-4-20250514":
@@ -113,12 +116,22 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 				const secondLastMsgUserIndex = userMsgIndices[userMsgIndices.length - 2] ?? -1
 
 				try {
-					stream = await this.client.messages.create(
+					stream = (await this.client.messages.create(
 						{
 							model: modelId,
 							max_tokens: maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
-							temperature,
+							// Conditionally include temperature: undefined values must not be
+							// serialized for opus-4-7+ (rejected with 400). Existing models
+							// continue to receive their temperature unchanged.
+							...(temperature !== undefined && { temperature }),
 							thinking,
+							// Adaptive-thinking models accept output_config.effort as a soft
+							// intelligence-vs-tokens guidance signal. Hardcoded to "high" for now;
+							// future sprint can expose this via UI. SDK type lags the API.
+							...(info.supportsAdaptiveThinking &&
+								({
+									output_config: { effort: "high" },
+								} as Record<string, unknown>)),
 							// Setting cache breakpoint for system prompt so new tasks can reuse it.
 							system: [{ text: systemPrompt, type: "text", cache_control: cacheControl }],
 							messages: sanitizedMessages.map((message, index) => {
@@ -151,6 +164,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 								case "claude-sonnet-4-5":
 								case "claude-sonnet-4-20250514":
 								case "claude-opus-4-6":
+								case "claude-opus-4-7":
 								case "claude-opus-4-5-20251101":
 								case "claude-opus-4-1-20250805":
 								case "claude-opus-4-20250514":
@@ -166,7 +180,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 									return undefined
 							}
 						})(),
-					)
+					)) as AnthropicStream<Anthropic.Messages.RawMessageStreamEvent>
 				} catch (error) {
 					TelemetryService.instance.captureException(
 						new ApiProviderError(
@@ -342,7 +356,8 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 			(id === "claude-sonnet-4-20250514" ||
 				id === "claude-sonnet-4-5" ||
 				id === "claude-sonnet-4-6" ||
-				id === "claude-opus-4-6") &&
+				id === "claude-opus-4-6" ||
+				id === "claude-opus-4-7") &&
 			this.options.anthropicBeta1MContext
 		) {
 			// Use the tier pricing for 1M context
@@ -380,7 +395,7 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 	}
 
 	async completePrompt(prompt: string) {
-		let { id: model, temperature } = this.getModel()
+		let { id: model, info, temperature } = this.getModel()
 
 		let message
 		try {
@@ -388,7 +403,9 @@ export class AnthropicHandler extends BaseProvider implements SingleCompletionHa
 				model,
 				max_tokens: ANTHROPIC_DEFAULT_MAX_TOKENS,
 				thinking: undefined,
-				temperature,
+				// Same temperature pattern as createMessage — strip when undefined
+				// to avoid 400s on adaptive-thinking models.
+				...(temperature !== undefined && { temperature }),
 				messages: [{ role: "user", content: prompt }],
 				stream: false,
 			})

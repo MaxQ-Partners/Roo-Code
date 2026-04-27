@@ -108,8 +108,25 @@ export const getAnthropicReasoning = ({
 	model,
 	reasoningBudget,
 	settings,
-}: GetModelReasoningOptions): AnthropicReasoningParams | undefined =>
-	shouldUseReasoningBudget({ model, settings }) ? { type: "enabled", budget_tokens: reasoningBudget! } : undefined
+}: GetModelReasoningOptions): AnthropicReasoningParams | undefined => {
+	// Adaptive-thinking models (Opus 4.7+) reject {type: "enabled", budget_tokens}.
+	// When reasoning is enabled by the user, emit adaptive shape with summarized
+	// display so the UI continues to show reasoning text during streaming.
+	// SDK types lag the API; cast through `unknown` at the boundary.
+	if (model.supportsAdaptiveThinking) {
+		if (shouldUseReasoningBudget({ model, settings })) {
+			return {
+				type: "adaptive",
+				display: "summarized",
+			} as unknown as AnthropicReasoningParams
+		}
+		return undefined
+	}
+
+	return shouldUseReasoningBudget({ model, settings })
+		? { type: "enabled", budget_tokens: reasoningBudget! }
+		: undefined
+}
 
 export const getOpenAiReasoning = ({
 	model,
