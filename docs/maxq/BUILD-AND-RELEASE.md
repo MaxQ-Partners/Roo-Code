@@ -25,15 +25,22 @@ nvm use                          # picks up .nvmrc → 20.19.2
 pnpm install                     # only needed after dependency changes
 pnpm clean                       # clears stale build output
 pnpm vsix                        # builds the .vsix file
-pnpm install:vsix                # uninstalls old version, installs new one
+pnpm install:vsix --force        # uninstalls old version, installs new one
 ```
 
-`pnpm install:vsix` also runs `pnpm install --frozen-lockfile` and `pnpm clean`
-internally, so for a full clean build you can collapse to:
+`pnpm install:vsix --force` also runs `pnpm install --frozen-lockfile` and
+`pnpm clean` internally, so for a full clean build you can collapse to:
 
 ```bash
-pnpm install:vsix
+pnpm install:vsix --force
 ```
+
+> **Why `--force`?** VS Code refuses to reinstall an extension whose version
+> string matches what's already installed (and our pre-release suffixes can
+> look like duplicates to it). The `--force` flag tells VS Code to overwrite
+> the existing install regardless. Always include it on the MaxQ fork — there
+> is no scenario where you want the install to fail because of a version-match
+> check.
 
 The first build takes 5–10 minutes. Subsequent builds are 1–3 minutes because
 Turbo caches unchanged packages.
@@ -107,7 +114,7 @@ commit, push to your fork.
 # 1. Bump version in src/package.json
 # 2. Add entry to docs/maxq/CHANGELOG.md
 # 3. Verify the build works
-pnpm install:vsix
+pnpm install:vsix --force
 
 # 4. Commit
 git add src/package.json docs/maxq/CHANGELOG.md
@@ -144,6 +151,11 @@ The change is one line:
 
 **`pnpm install` fails on bootstrap.mjs**: Check Node version. Must be exactly
 20.19.2. Run `node --version` to verify.
+
+**`pnpm install:vsix` says "extension is already installed" or silently
+no-ops**: You forgot the `--force` flag. Re-run as `pnpm install:vsix --force`.
+The MaxQ fork's version-suffix scheme (`-maxq.N`) can look like a duplicate
+install to VS Code; `--force` always resolves it.
 
 **`pnpm vsix` succeeds but VS Code doesn't see the new version**: Fully quit
 VS Code (Cmd+Q) and reopen. Window reload is not sufficient. If still wrong,
