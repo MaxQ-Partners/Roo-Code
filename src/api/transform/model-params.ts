@@ -147,6 +147,12 @@ export function getModelParams({
 	const params: BaseModelParams = { maxTokens, temperature, reasoningEffort, reasoningBudget, verbosity }
 
 	if (format === "anthropic") {
+		// Models that don't support temperature (e.g. claude-opus-4-7) reject
+		// any explicit temperature value with a 400 error. Strip it here so
+		// it never reaches the API call site.
+		if (model.supportsTemperature === false) {
+			params.temperature = undefined
+		}
 		return {
 			format,
 			...params,
