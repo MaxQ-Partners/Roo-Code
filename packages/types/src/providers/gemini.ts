@@ -64,6 +64,20 @@ export const geminiModels = {
 			},
 		],
 	},
+	"gemini-3.1-flash-lite": {
+		maxTokens: 65_536,
+		contextWindow: 1_048_576,
+		supportsImages: true,
+		supportsPromptCache: true,
+		supportsReasoningEffort: ["low", "medium", "high"],
+		reasoningEffort: "low",
+
+		supportsTemperature: true,
+		defaultTemperature: 1,
+		inputPrice: 0.25, // $0.25 per 1M input tokens (text/image/video)
+		outputPrice: 1.5, // $1.50 per 1M output tokens (incl. thinking tokens)
+		cacheReadsPrice: 0.025, // $0.025 per 1M cached tokens
+	},
 	"gemini-3-pro-preview": {
 		maxTokens: 65_536,
 		contextWindow: 1_048_576,

@@ -3,6 +3,19 @@
 Changes specific to the MaxQ fork of Roo Code. Upstream changes are
 tracked separately in the root `CHANGELOG.md` (which we don't modify).
 
+## 3.53.0-maxq.3
+
+### Added
+
+- **`gemini-3.1-flash-lite` support in the native Gemini provider** (Sprint 003)
+    - Added model definition to `packages/types/src/providers/gemini.ts` with
+      a 1M context window, `supportsReasoningEffort: ["low", "medium", "high"]`
+      (same effort-string API shape as `gemini-3.1-pro-preview`), and flat pricing:
+      $0.25 / $1.50 / $0.025 per 1M tokens (input / output / cache-reads).
+    - No provider-code changes required — `src/api/providers/gemini.ts` is
+      fully table-driven via `geminiModels[id]` lookup; new models appear
+      automatically once the type entry is added.
+
 ## 3.53.0-maxq.2
 
 ### Fixed
