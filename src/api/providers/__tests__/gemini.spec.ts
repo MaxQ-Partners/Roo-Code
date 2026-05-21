@@ -12,10 +12,17 @@ vitest.mock("@roo-code/telemetry", () => ({
 
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import { type ModelInfo, geminiDefaultModelId, ApiProviderError } from "@roo-code/types"
+import {
+	type ModelInfo,
+	geminiDefaultModelId,
+	geminiModels,
+	type GeminiModelId,
+	ApiProviderError,
+} from "@roo-code/types"
 
 import { t } from "i18next"
 import { GeminiHandler } from "../gemini"
+import { getModelParams } from "../../transform/model-params"
 
 const GEMINI_MODEL_NAME = geminiDefaultModelId
 
@@ -333,5 +340,54 @@ describe("GeminiHandler", () => {
 			// Telemetry should have been captured before the error was thrown
 			expect(mockCaptureException).toHaveBeenCalled()
 		})
+	})
+})
+
+describe("gemini-3.5-flash model entry", () => {
+	// Use any-cast to access union-typed model properties
+	const flash35Model = (geminiModels as any)["gemini-3.5-flash"]
+
+	it("should exist in geminiModels registry as a valid GeminiModelId", () => {
+		expect("gemini-3.5-flash" in geminiModels).toBe(true)
+	})
+
+	it("should have supportsReasoningEffort (effort-shaped, not budget-shaped)", () => {
+		expect(Array.isArray(flash35Model.supportsReasoningEffort)).toBe(true)
+		expect(flash35Model.supportsReasoningBudget).toBeUndefined()
+		expect(flash35Model.maxThinkingTokens).toBeUndefined()
+	})
+
+	it("should have supportsTemperature: false", () => {
+		expect(flash35Model.supportsTemperature).toBe(false)
+	})
+
+	it("should have reasoningEffort: medium", () => {
+		expect(flash35Model.reasoningEffort).toBe("medium")
+	})
+
+	it("GeminiHandler.getModel() should return gemini-3.5-flash info correctly", () => {
+		const flash35Handler = new GeminiHandler({
+			apiKey: "test-key",
+			apiModelId: "gemini-3.5-flash",
+			geminiApiKey: "test-key",
+		})
+		const modelInfo = flash35Handler.getModel()
+		expect(modelInfo.id).toBe("gemini-3.5-flash")
+		expect(modelInfo.info).toBeDefined()
+		expect(modelInfo.info.supportsTemperature).toBe(false)
+	})
+
+	it("getModelParams with format=gemini should produce thinkingLevel shape, not thinkingBudget", () => {
+		const params = getModelParams({
+			format: "gemini",
+			modelId: "gemini-3.5-flash",
+			model: flash35Model as ModelInfo,
+			settings: {},
+			defaultTemperature: 1,
+		})
+		// Should have thinkingLevel (effort-based) not thinkingBudget (budget-based)
+		expect(params.reasoning).toBeDefined()
+		expect((params.reasoning as any).thinkingLevel).toBe("medium")
+		expect((params.reasoning as any).thinkingBudget).toBeUndefined()
 	})
 })

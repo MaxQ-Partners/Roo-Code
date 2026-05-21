@@ -120,6 +120,20 @@ export const geminiModels = {
 		outputPrice: 3.0,
 		cacheReadsPrice: 0.05,
 	},
+	"gemini-3.5-flash": {
+		maxTokens: 65_536,
+		contextWindow: 1_048_576,
+		supportsImages: true,
+		supportsPromptCache: true,
+		supportsReasoningEffort: ["minimal", "low", "medium", "high"],
+		reasoningEffort: "medium",
+
+		supportsTemperature: false,
+		// No defaultTemperature — Google explicitly says don't send temperature for 3.x.
+		inputPrice: 0.5,
+		outputPrice: 3.0,
+		cacheReadsPrice: 0.05,
+	},
 	// 2.5 Pro models
 	"gemini-2.5-pro": {
 		maxTokens: 64_000,

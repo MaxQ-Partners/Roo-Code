@@ -2678,6 +2678,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				let cacheReadTokens = 0
 				let inputTokens = 0
 				let outputTokens = 0
+				let reasoningTokens = 0
 				let totalCost: number | undefined
 
 				// We can't use `api_req_finished` anymore since it's a unique case
@@ -2726,6 +2727,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						cacheWrites: cacheWriteTokens,
 						cacheReads: cacheReadTokens,
 						cost: totalCost ?? costResult.totalCost,
+						reasoningTokens,
 						cancelReason,
 						streamingFailedMessage,
 					} satisfies ClineApiReqInfo)
@@ -2852,6 +2854,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 								outputTokens += chunk.outputTokens
 								cacheWriteTokens += chunk.cacheWriteTokens ?? 0
 								cacheReadTokens += chunk.cacheReadTokens ?? 0
+								reasoningTokens += chunk.reasoningTokens ?? 0
 								totalCost = chunk.totalCost
 								break
 							case "grounding":

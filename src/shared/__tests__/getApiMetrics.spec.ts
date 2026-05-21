@@ -326,4 +326,63 @@ describe("getApiMetrics", () => {
 			console.error = originalConsoleError
 		})
 	})
+
+	describe("reasoningTokens field", () => {
+		it("should accept and preserve reasoningTokens in api_req_started text without breaking parsing", () => {
+			const messages: ClineMessage[] = [
+				createApiReqStartedMessage(
+					'{"tokensIn":100,"tokensOut":200,"cacheWrites":5,"cacheReads":10,"cost":0.005,"reasoningTokens":42}',
+				),
+			]
+
+			const result = getApiMetrics(messages)
+
+			// Standard metrics still computed correctly
+			expect(result.totalTokensIn).toBe(100)
+			expect(result.totalTokensOut).toBe(200)
+			expect(result.totalCost).toBe(0.005)
+		})
+
+		it("should handle api_req_started with only reasoningTokens set (no standard tokens)", () => {
+			const messages: ClineMessage[] = [createApiReqStartedMessage('{"reasoningTokens":100}')]
+
+			const result = getApiMetrics(messages)
+
+			// No standard tokens — everything at zero/undefined
+			expect(result.totalTokensIn).toBe(0)
+			expect(result.totalTokensOut).toBe(0)
+			expect(result.totalCost).toBe(0)
+		})
+
+		it("should round-trip ClineApiReqInfo with reasoningTokens through JSON.stringify/parse", () => {
+			// Verifies that the type accepts reasoningTokens and serializes cleanly.
+			type ClineApiReqInfo = {
+				request?: string
+				tokensIn?: number
+				tokensOut?: number
+				cacheWrites?: number
+				cacheReads?: number
+				cost?: number
+				reasoningTokens?: number
+				cancelReason?: string
+				streamingFailedMessage?: string
+				apiProtocol?: "anthropic" | "openai"
+			}
+
+			const payload: ClineApiReqInfo = {
+				tokensIn: 500,
+				tokensOut: 300,
+				cost: 0.01,
+				reasoningTokens: 150,
+			}
+
+			const serialized = JSON.stringify(payload)
+			const deserialized: ClineApiReqInfo = JSON.parse(serialized)
+
+			expect(deserialized.reasoningTokens).toBe(150)
+			expect(deserialized.tokensIn).toBe(500)
+			expect(deserialized.tokensOut).toBe(300)
+			expect(deserialized.cost).toBe(0.01)
+		})
+	})
 })
