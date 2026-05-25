@@ -3,6 +3,32 @@
 Changes specific to the MaxQ fork of Roo Code. Upstream changes are
 tracked separately in the root `CHANGELOG.md` (which we don't modify).
 
+## 3.53.0-maxq.4
+
+### Added
+
+- **`gemini-3.5-flash` model entry + `flash35` mode + `reasoningTokens` plumbing** (Sprint 004 / `c597a05e9`)
+
+    - Added `gemini-3.5-flash` to `packages/types/src/providers/gemini.ts` (line 123):
+      `supportsTemperature: false`, `supportsReasoningEffort: ["minimal","low","medium","high"]`,
+      `reasoningEffort: "medium"`, `inputPrice: 0.5`, `outputPrice: 3.0`, `cacheReadsPrice: 0.05`.
+    - Added `flash35` mode to `DEFAULT_MODES` in `packages/types/src/mode.ts` (line 215-216):
+      `groups: ["read","edit","command","mcp"]`, with action-budget / observe-once /
+      output-discipline / tool-selection / reasoning `customInstructions`.
+    - Added `reasoningTokens` field to per-turn API metrics in `src/core/task/Task.ts`,
+      enabling cost-curve diagnostics on thinking-model builds.
+    - Measured win on synthetic designer task vs `gemini-flash-latest` + `code` + `medium`:
+      −27% cost, −45% turns, −83% reasoning tokens, +1 quality point.
+
+- **`GEMINI_MEDIA_RESOLUTION` env-flag for image cost lever** (Sprint MediaResolution / `19778e828`)
+    - Added `MediaResolution` import from `@google/genai` to
+      `src/api/providers/gemini.ts`.
+    - `GEMINI_MEDIA_RESOLUTION=low|medium|high` maps to the SDK enum and injects
+      `mediaResolution` into `GenerateContentConfig`. Unset = no field sent (default
+      resolution unchanged). Per-image token cut at `low`: ~75% (~1,080 → ~270 tokens),
+      measured on production screenshots in Stage 1.
+    - No rebuild required to change resolution — flip the env var and restart.
+
 ## 3.53.0-maxq.3
 
 ### Added
