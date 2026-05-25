@@ -1,11 +1,12 @@
 import type { Anthropic } from "@anthropic-ai/sdk"
 import {
 	GoogleGenAI,
+	FunctionCallingConfigMode,
+	MediaResolution,
 	type GenerateContentResponseUsageMetadata,
 	type GenerateContentParameters,
 	type GenerateContentConfig,
 	type GroundingMetadata,
-	FunctionCallingConfigMode,
 } from "@google/genai"
 import type { JWTInput } from "google-auth-library"
 
@@ -152,12 +153,27 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 			? (this.options.modelTemperature ?? info.defaultTemperature ?? 1)
 			: info.defaultTemperature
 
+		// Image cost lever: MEDIA_RESOLUTION_LOW collapses each image to a single
+		// ~270-token tile (vs ~1,080 at default) — a ~75% per-image input-token cut
+		// (measured, see plans/SPRINT_MEDIARESOLUTION_STAGE2.md). Gated by env so it
+		// can be enabled for outbound prebuilds only and reverted without a rebuild.
+		const mrEnv = (process.env.GEMINI_MEDIA_RESOLUTION || "").toLowerCase()
+		const mediaResolution =
+			mrEnv === "low"
+				? MediaResolution.MEDIA_RESOLUTION_LOW
+				: mrEnv === "medium"
+					? MediaResolution.MEDIA_RESOLUTION_MEDIUM
+					: mrEnv === "high"
+						? MediaResolution.MEDIA_RESOLUTION_HIGH
+						: undefined
+
 		const config: GenerateContentConfig = {
 			systemInstruction,
 			httpOptions: this.options.googleGeminiBaseUrl ? { baseUrl: this.options.googleGeminiBaseUrl } : undefined,
 			thinkingConfig,
 			maxOutputTokens,
 			temperature: temperatureConfig,
+			...(mediaResolution ? { mediaResolution } : {}),
 			...(tools.length > 0 ? { tools } : {}),
 		}
 
