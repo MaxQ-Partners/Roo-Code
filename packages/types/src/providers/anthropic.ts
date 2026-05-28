@@ -118,6 +118,34 @@ export const anthropicModels = {
 			},
 		],
 	},
+	"claude-opus-4-8": {
+		maxTokens: 128_000, // Overridden to 8k if `enableReasoningEffort` is false.
+		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag
+		supportsImages: true,
+		supportsPromptCache: true,
+		inputPrice: 5.0,
+		outputPrice: 25.0,
+		cacheWritesPrice: 6.25,
+		cacheReadsPrice: 0.5,
+		supportsReasoningBudget: true,
+		// Opus 4.8 uses the same adaptive-thinking + effort-control API shape as
+		// 4.7 (launched 2026-05-28, same pricing). Adaptive thinking + temperature
+		// suppression must travel together — see SPRINT-002.
+		supportsAdaptiveThinking: true,
+		supportsTemperature: false,
+		// Tiered pricing for extended context (requires beta flag)
+		// NOTE: 1M-tier numbers mirrored from 4.7; verify against
+		// docs.anthropic.com/pricing before the next release cycle.
+		tiers: [
+			{
+				contextWindow: 1_000_000,
+				inputPrice: 10.0,
+				outputPrice: 37.5,
+				cacheWritesPrice: 12.5,
+				cacheReadsPrice: 1.0,
+			},
+		],
+	},
 	"claude-opus-4-5-20251101": {
 		maxTokens: 32_000, // Overridden to 8k if `enableReasoningEffort` is false.
 		contextWindow: 200_000,

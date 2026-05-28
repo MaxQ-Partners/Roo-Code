@@ -3,6 +3,50 @@
 Changes specific to the MaxQ fork of Roo Code. Upstream changes are
 tracked separately in the root `CHANGELOG.md` (which we don't modify).
 
+## 3.53.0-maxq.5
+
+### Added
+
+- **`claude-opus-4-8` in the native Anthropic provider** (Sprint 005 / Part B)
+    - Added model entry to `packages/types/src/providers/anthropic.ts` after `claude-opus-4-7`:
+      `maxTokens: 128_000`, `contextWindow: 200_000`, `supportsAdaptiveThinking: true`,
+      `supportsTemperature: false`, same pricing as 4.7 ($5/$25 standard; 1M tier mirrored
+      from 4.7 — verify against docs.anthropic.com/pricing before next release cycle).
+    - Added `claude-opus-4-8` to all four required sites in `src/api/providers/anthropic.ts`
+      (1M beta-header conditional, `getModel()` 1M pricing conditional, outer routing switch,
+      inner prompt-caching switch). Sprint-002 adaptive-thinking machinery applies
+      automatically via `supportsAdaptiveThinking: true`.
+
+### Fixed (cherry-picked from Zoo Code — Sprint 005 / Part A)
+
+- **uuid security + pin esbuild/rollup/vite** (`7c58206d8`)
+
+    - `package.json` / `pnpm-lock.yaml`: uuid pinned to secure version; esbuild, rollup,
+      and vite pinned to address known CVEs.
+
+- **Truncated-diff repair** (`b5c5e2188`)
+
+    - `src/core/diff/strategies/multi-search-replace.ts`: handles Grok diffs with missing
+      markers, preventing silent truncation of partial apply results.
+
+- **OpenAI-compat: omit temperature for models that reject it** (`513f47d59`)
+
+    - `src/api/providers/openai.ts`: generalizes the temperature-suppression pattern
+      (already in our Anthropic path from Sprint 002) to the OpenAI-compatible provider.
+
+- **Terminal: terminate running process on task cancel** (`d96cd4ce0`)
+
+    - `src/integrations/terminal/TerminalRegistry.ts`: sends SIGTERM/SIGKILL to the
+      active shell process when the user cancels a task, preventing zombie processes.
+
+- **Gemini: honor custom model IDs** (`cef0cc342`)
+
+    - `src/api/providers/gemini.ts`: custom model IDs (e.g. `gemini-3.5-flash`) now
+      route correctly instead of falling back to the default model.
+
+- **turbo v2.9.14 security bump** (`6470431a7`)
+    - `pnpm-lock.yaml`: turbo updated to 2.9.14 to address a security advisory.
+
 ## 3.53.0-maxq.4
 
 ### Added
